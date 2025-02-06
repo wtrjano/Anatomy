@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Drag-and-Connect Quiz - Science Quiz</title>
+  <style>
+    /* Basic reset and fonts */
+    body { margin: 0; font-family: Arial, sans-serif; }
+    
+    /* Integrated title at the very top */
+    #integratedTitleContainer {
+      text-align: center;
+      padding: 10px;
+      background: #f0f0f0;
+      border-bottom: 1px solid #ccc;
+    }
+    
+    /* Layout: sidebar (quiz list) + quiz main area */
+    #mainContainer {
+      display: flex;
+      height: calc(100vh - 60px); /* adjust height as needed */
+    }
+    /* Sidebar (left) */
+    #sidebar {
+      width: 20%;
+      border-right: 1px solid #ccc;
+      padding: 10px;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+    #quizList {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #quizList li {
+      cursor: pointer;
+      padding: 5px;
+      border-bottom: 1px solid #ccc;
+    }
+    #quizList li.active {
+      background: #ddd;
+    }
+    #quizList li.completed {
+      font-weight: bold;
+    }
+    
+    /* Quiz main area (right) */
+    #quizMain {
+      width: 80%;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    #quizPageTitle {
+      margin: 0;
+      padding: 5px;
+    }
+    
+    /* Progress Bar */
+    #progressBarContainer {
+      width: 100%;
+      height: 20px;
+      background: #eee;
+      border: 1px solid #ccc;
+      margin: 10px 0;
+      position: relative;
+    }
+    #progressBar {
+      height: 100%;
+      width: 0;
+      background: green;
+    }
+    
+    /* The quiz container for drag-and-connect (holds left & right columns) */
+    #quizContainer {
+      position: relative;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      border: 1px solid #ccc;
+      padding: 10px;
+      box-sizing: border-box;
+      min-height: 300px;
+    }
+    #leftColumn, #rightColumn {
+      width: 45%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      position: relative;
+    }
+    
+    /* Left item container & its elements */
+    .left-item-container {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .left-item {
+      padding: 10px;
+      border: 2px solid #888;
+      border-radius: 4px;
+      background: #f9f9f9;
+      text-align: center;
+    }
+    .left-circle {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ccc;
+      border: 2px solid #888;
+      position: absolute;
+      top: 50%;
+      right: -30px; /* positioned outside the rectangle */
+      transform: translateY(-50%);
+      cursor: pointer;
+    }
+    
+    /* Right item container & its elements */
+    .right-item-container {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .right-item {
+      padding: 10px;
+      border: 2px solid #888;
+      border-radius: 4px;
+      background: #f9f9f9;
+      text-align: center;
+    }
+    .right-circle {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ccc;
+      border: 2px solid #888;
+      position: absolute;
+      top: 50%;
+      left: -30px; /* positioned outside the rectangle */
+      transform: translateY(-50%);
+      cursor: pointer;
+    }
+    
+    /* SVG overlay for drawing lines */
+    #svgContainer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    
+    /* Button container */
+    #buttonContainer {
+      margin-top: 10px;
+      text-align: center;
+    }
+    #buttonContainer button {
+      margin: 0 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+    
+    /* Score Display Area */
+    #scoreDisplay {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      white-space: pre-line;
+    }
+    
+    /* Lecture Note Area */
+    #lectureDisplay {
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      line-height: 1.2;
+      max-height: 7.2em;  /* roughly 6 lines if line-height ~1.2 em */
+      overflow-y: auto;
+      display: none;  /* Initially hidden */
+    }
+  </style>
+</head>
+<body>
+  <!-- Integrated title -->
+  <div id="integratedTitleContainer">
+    <h1 id="integratedTitle">組織学英単語クイズ</h1>
+  </div>
+  
+  <!-- Main container: sidebar + quiz main area -->
+  <div id="mainContainer">
+    <!-- Sidebar with quiz list -->
+    <div id="sidebar">
+      <h3>Quiz List</h3>
+      <ul id="quizList"></ul>
+    </div>
+    <!-- Quiz main area -->
+    <div id="quizMain">
+      <h2 id="quizPageTitle">Quiz 1</h2>
+      <div id="progressBarContainer">
+        <div id="progressBar"></div>
+      </div>
+      <!-- Quiz interface: left and right columns with SVG overlay -->
+      <div id="quizContainer">
+        <div id="leftColumn"></div>
+        <div id="rightColumn"></div>
+        <svg id="svgContainer"></svg>
+      </div>
+      <!-- Buttons -->
+      <div id="buttonContainer">
+        <button id="sendButton">Send</button>
+        <button id="nextButton" disabled>Next</button>
+        <button id="restartButton">Restart</button>
+      </div>
+      <!-- Score Display -->
+      <div id="scoreDisplay"></div>
+      <!-- Lecture Note Area (initially hidden) -->
+      <div id="lectureDisplay"></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+      // =======================
+      // Quiz Data (For demonstration, 2 pages are defined; more pages will be added to reach 20.)
+      // Each quiz object can have an optional title.
+      // =======================
+      const quizzes = [
+	     {
+			title: "神経組織",
+			left: [
+			  { text: "神経組織", match: "神経組織" },
+			  { text: "中枢神経系", match: "中枢神経系" },
+			  { text: "末梢神経系", match: "末梢神経系" },
+			  { text: "自律神経系", match: "自律神経系" },
+			  { text: "体性神経系", match: "体性神経系" }
+			],
+			right: [
+				{ text: "Nervous tissue", match: "神経組織" },
+				{ text: "Central Nervous system (CNS)", match: "中枢神経系" },
+				{ text: "Peripheral nerves system (PNS)", match: "末梢神経系" },
+				{ text: "Autonomic nerves system (ANS)", match: "自律神経系" },
+				{ text: "Somatic nervous system(SNS)", match: "体性神経系" }
+			]
+      },
+	     {
+			title: "神経細胞",
+			left: [
+				{ text: "ニューロン", match:"ニューロン" },
+				{ text: "軸索", match:"軸索" },
+				{ text: "樹状突起", match:"樹状突起" },
+				{ text: "ニッスル小体", match:"ニッスル小体" },
+				{ text: "軸索小丘", match:"軸索小丘" }
+			],
+			right: [
+				{ text: "Neuron",match:"ニューロン" },
+				{ text: "Axon",match:"軸索" },
+				{ text: "Dendrites",match:"樹状突起" },
+				{ text: "Nissle bodies",match:"ニッスル小体" },
+				{ text: "Axon hillock",match:"軸索小丘" }
+			]
+      },
+	  
+	  	     {
+			title: "軸索",
+			left: [
+				{ text: "ニューロフィラメント", match:"ニューロフィラメント" },
+				{ text: "有髄線維", match:"有髄線維" },
+				{ text: "跳躍伝導", match:"跳躍伝導" },
+				{ text: "軸索輸送", match:"軸索輸送" },
+				{ text: "髄鞘", match:"髄鞘" }
+			],
+			right: [
+				{ text: "Neurofilament",match:"ニューロフィラメント" },
+				{ text: "Myelinated fibers",match:"有髄線維" },
+				{ text: "saltory conduction",match:"跳躍伝導" },
+				{ text: "Axonal transport",match:"軸索輸送" },
+				{ text: "Myelin sheath",match:"髄鞘" }
+			]
+      },
+	  
+		  	     {
+			title: "グリア細胞",
+			left: [
+				{ text: "グリア細胞", match:"グリア細胞" },
+				{ text: "星状膠細胞", match:"星状膠細胞" },
+				{ text: "希突起膠細胞", match:"希突起膠細胞" },
+				{ text: "ミクログリア", match:"ミクログリア" },
+				{ text: "シュワン細胞", match:"シュワン細胞" }
+			],
+			right: [
+				{ text: "Glial cells",match:"グリア細胞" },
+				{ text: "Astrocytes",match:"星状膠細胞" },
+				{ text: "Oligodendrocytes",match:"希突起膠細胞" },
+				{ text: "microglia",match:"ミクログリア" },
+				{ text: "Schwann cells",match:"シュワン細胞" }
+			]
+      },  
+	  
+	  		  	     {
+			title: "脳血液関門",
+			left: [
+				{ text: "血液脳関門", match:"血液脳関門" },
+				{ text: "脳血液関門", match:"脳血液関門" },
+				{ text: "終足", match:"終足" },
+				{ text: "脳脊髄液", match:"脳脊髄液" },
+				{ text: "上衣細胞", match:"上衣細胞" }
+			],
+			right: [
+				{ text: "Blood-brain barrier",match:"血液脳関門" },
+				{ text: "Brain-blood barrier",match:"脳血液関門" },
+				{ text: "endfoot",match:"終足" },
+				{ text: "Cerebrospinal fluid(CF)",match:"脳脊髄液" },
+				{ text: "Ependymal cells",match:"上衣細胞" }
+
+			]
+      },  
+	  
+	  		  	     {
+			title: "変性と再生",
+			left: [
+				{ text: "変性", match:"変性" },
+				{ text: "再生", match:"再生" },
+				{ text: "多発性硬化症", match:"多発性硬化症" },
+				{ text: "ギランバレー症候群", match:"ギランバレー症候群" },
+				{ text: "シナプス後電位", match:"シナプス後電位" }
+			],
+			right: [
+				{ text: "Degeneration",match:"変性" },
+				{ text: "Regeneration",match:"再生" },
+				{ text: "Multiple sclerosis",match:"多発性硬化症" },
+				{ text: "Guillain-Barre syndrome",match:"ギランバレー症候群" },
+				{ text: "Postsynaptic potential",match:"シナプス後電位" }
+			]
+      },  	  
+	
+	  		  	     {
+			title: "発生",
+			left: [
+				{ text: "交感神経", match:"交感神経" },
+				{ text: "副交感神経", match:"副交感神経" },
+				{ text: "神経管", match:"神経管" },
+				{ text: "神経堤", match:"神経堤" },
+				{ text: "シナプス", match:"シナプス" }
+			],
+			right: [
+				{ text: "Sympathetic nerves",match:"交感神経" },
+				{ text: "Parasympathetic nerves",match:"副交感神経" },
+				{ text: "Neural tube",match:"神経管" },
+				{ text: "Neural crest",match:"神経堤" },
+				{ text: "Synapse",match:"シナプス" }
+			]
+      },  	 
+	
+      ];
+      
+      // For demonstration purposes, duplicate the quizzes to have 20 pages.
+
+
+      // Global state variables
+      let currentQuizIndex = 0;
+      let quizResults = new Array(quizzes.length).fill(null); // each quiz’s score (null if not attempted)
+      let totalScore = 0;
+      let connections = {}; // key: left container id, value: { rightCircle, line }
+      let tempLine = null;      // temporary line during dragging
+      let currentLeftCircle = null; // currently dragged left circle
+      const SNAP_THRESHOLD = 30;    // pixels
+
+      // =======================
+      // DOM Elements
+      // =======================
+      const integratedTitle = document.getElementById('integratedTitle');
+      const quizPageTitle = document.getElementById('quizPageTitle');
+      const progressBar = document.getElementById('progressBar');
+      const leftColumn = document.getElementById('leftColumn');
+      const rightColumn = document.getElementById('rightColumn');
+      const svgContainer = document.getElementById('svgContainer');
+      const sendButton = document.getElementById('sendButton');
+      const nextButton = document.getElementById('nextButton');
+      const restartButton = document.getElementById('restartButton');
+      const quizList = document.getElementById('quizList');
+      const scoreDisplay = document.getElementById('scoreDisplay');
+      const lectureDisplay = document.getElementById('lectureDisplay');
+
+      // =======================
+      // Helper Functions
+      // =======================
+
+      // Shuffle an array (Fisher-Yates)
+      function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+      }
+
+      // Get the center coordinates of an element relative to #quizContainer
+      function getCenterCoords(el) {
+        const containerRect = document.getElementById('quizContainer').getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        return {
+          x: elRect.left - containerRect.left + elRect.width / 2,
+          y: elRect.top - containerRect.top + elRect.height / 2
+        };
+      }
+
+      // Create an SVG line element with rounded ends.
+      function createSVGLine(x1, y1, x2, y2, color = '#000') {
+        const svgns = "http://www.w3.org/2000/svg";
+        const line = document.createElementNS(svgns, 'line');
+        line.setAttribute('x1', x1);
+        line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2);
+        line.setAttribute('y2', y2);
+        line.setAttribute('stroke', color);
+        line.setAttribute('stroke-width', 3);
+        line.setAttribute('stroke-linecap', 'round'); // Rounded line ends
+        return line;
+      }
+
+      // Check if the pointer is near any right circle (for snapping)
+      function checkSnap(x, y) {
+        const rightCircles = document.querySelectorAll('.right-circle');
+        for (const rightCircle of rightCircles) {
+          const center = getCenterCoords(rightCircle);
+          const dx = x - center.x;
+          const dy = y - center.y;
+          if (Math.sqrt(dx * dx + dy * dy) <= SNAP_THRESHOLD) {
+            return { snapped: true, x: center.x, y: center.y, targetCircle: rightCircle };
+          }
+        }
+        return null;
+      }
+
+      // Update the progress bar based on completed quizzes
+      function updateProgressBar() {
+        const completedCount = quizResults.filter(result => result !== null).length;
+        const percentage = (completedCount / quizzes.length) * 100;
+        progressBar.style.width = percentage + '%';
+      }
+
+      // Update the sidebar quiz list
+      function updateSidebar() {
+        quizList.innerHTML = '';
+        quizzes.forEach((quiz, index) => {
+          const li = document.createElement('li');
+          li.textContent = "Quiz " + (index + 1) + (quiz.title ? " - " + quiz.title : "");
+          if (index === currentQuizIndex) li.classList.add('active');
+          if (quizResults[index] !== null) {
+            li.classList.add('completed');
+            li.textContent += " (" + quizResults[index] + "/5)";
+          }
+          li.addEventListener('click', function() {
+            loadQuiz(index);
+          });
+          quizList.appendChild(li);
+        });
+      }
+
+      // =======================
+      // Drag-and-Drop Handlers
+      // =======================
+      function pointerDownHandler(e) {
+        e.preventDefault();
+        // Do nothing if this quiz is already completed.
+        if (quizResults[currentQuizIndex] !== null) return;
+        currentLeftCircle = e.currentTarget;
+        const leftContainer = currentLeftCircle.parentElement;
+        // Remove any existing connection for this left item.
+        if (connections[leftContainer.id]) {
+          svgContainer.removeChild(connections[leftContainer.id].line);
+          delete connections[leftContainer.id];
+        }
+        const start = getCenterCoords(currentLeftCircle);
+        tempLine = createSVGLine(start.x, start.y, start.x, start.y, '#888');
+        tempLine.setAttribute('stroke-dasharray', '5,5');
+        svgContainer.appendChild(tempLine);
+        document.addEventListener('pointermove', pointerMoveHandler);
+        document.addEventListener('pointerup', pointerUpHandler);
+      }
+      function pointerMoveHandler(e) {
+        const containerRect = document.getElementById('quizContainer').getBoundingClientRect();
+        let x = e.clientX - containerRect.left;
+        let y = e.clientY - containerRect.top;
+        const snap = checkSnap(x, y);
+        if (snap) { x = snap.x; y = snap.y; }
+        tempLine.setAttribute('x2', x);
+        tempLine.setAttribute('y2', y);
+      }
+      function pointerUpHandler(e) {
+        document.removeEventListener('pointermove', pointerMoveHandler);
+        document.removeEventListener('pointerup', pointerUpHandler);
+        const containerRect = document.getElementById('quizContainer').getBoundingClientRect();
+        let x = e.clientX - containerRect.left;
+        let y = e.clientY - containerRect.top;
+        const snap = checkSnap(x, y);
+        const leftContainer = currentLeftCircle.parentElement;
+        if (snap) {
+          x = snap.x; y = snap.y;
+          const rightCircle = snap.targetCircle;
+          // Remove any connection that already uses this right circle.
+          for (const key in connections) {
+            if (connections[key].rightCircle === rightCircle) {
+              svgContainer.removeChild(connections[key].line);
+              delete connections[key];
+              break;
+            }
+          }
+          svgContainer.removeChild(tempLine);
+          tempLine = null;
+          const start = getCenterCoords(currentLeftCircle);
+          const permanentLine = createSVGLine(start.x, start.y, x, y);
+          svgContainer.appendChild(permanentLine);
+          connections[leftContainer.id] = { rightCircle, line: permanentLine };
+        } else {
+          if (tempLine) { svgContainer.removeChild(tempLine); tempLine = null; }
+        }
+        currentLeftCircle = null;
+      }
+
+      // =======================
+      // Quiz Page Management
+      // =======================
+      function loadQuiz(index) {
+        currentQuizIndex = index;
+        updateSidebar();
+        updateProgressBar();
+        scoreDisplay.innerText = ""; // clear previous score display
+        // Hide lecture area on quiz load.
+        lectureDisplay.style.display = "none";
+        lectureDisplay.innerText = "";
+        // Clear previous quiz interface and connections
+        leftColumn.innerHTML = "";
+        rightColumn.innerHTML = "";
+        svgContainer.innerHTML = "";
+        connections = {};
+
+        const quiz = quizzes[index];
+        // Update the quiz page title
+        let titleText = "Quiz " + (index + 1);
+        if (quiz.title) { titleText += " - " + quiz.title; }
+        if (quizResults[index] !== null) { titleText += " (Score: " + quizResults[index] + "/5)"; }
+        quizPageTitle.textContent = titleText;
+        // Enable Send only if this quiz is not yet attempted.
+        sendButton.disabled = (quizResults[index] !== null);
+
+        // Shuffle left and right arrays independently.
+        let leftItems = quiz.left.slice();
+        let rightItems = quiz.right.slice();
+        shuffleArray(leftItems);
+        shuffleArray(rightItems);
+
+        // Populate left column.
+        leftItems.forEach((item, i) => {
+          const container = document.createElement('div');
+          container.className = 'left-item-container';
+          container.id = 'left' + i;
+          const itemDiv = document.createElement('div');
+          itemDiv.className = 'left-item';
+          itemDiv.textContent = item.text;
+          itemDiv.setAttribute('data-match', item.match);
+          container.appendChild(itemDiv);
+          const circleDiv = document.createElement('div');
+          circleDiv.className = 'left-circle';
+          container.appendChild(circleDiv);
+          leftColumn.appendChild(container);
+          circleDiv.addEventListener('pointerdown', pointerDownHandler);
+        });
+
+        // Populate right column.
+        rightItems.forEach((item, i) => {
+          const container = document.createElement('div');
+          container.className = 'right-item-container';
+          container.id = 'right' + i;
+          const circleDiv = document.createElement('div');
+          circleDiv.className = 'right-circle';
+          container.appendChild(circleDiv);
+          const itemDiv = document.createElement('div');
+          itemDiv.className = 'right-item';
+          itemDiv.textContent = item.text;
+          itemDiv.setAttribute('data-match', item.match);
+          container.appendChild(itemDiv);
+          rightColumn.appendChild(container);
+        });
+      }
+
+      // =======================
+      // Button Handlers
+      // =======================
+      sendButton.addEventListener('click', () => {
+        const leftContainers = document.querySelectorAll('.left-item-container');
+        if (Object.keys(connections).length !== leftContainers.length) {
+          scoreDisplay.innerText = "Please complete all connections before sending!";
+          return;
+        }
+        let correctCount = 0;
+        leftContainers.forEach(container => {
+          const leftMatch = container.querySelector('.left-item').getAttribute('data-match');
+          const { rightCircle, line } = connections[container.id];
+          const rightMatch = rightCircle.parentElement.querySelector('.right-item').getAttribute('data-match');
+          if (leftMatch === rightMatch) {
+            line.setAttribute('stroke', 'blue'); // correct = blue
+            correctCount++;
+          } else {
+            line.setAttribute('stroke', 'red');  // incorrect = red
+          }
+        });
+        // Save the result and update cumulative score.
+        quizResults[currentQuizIndex] = correctCount;
+        totalScore = quizResults.reduce((acc, val) => acc + (val || 0), 0);
+        // Update the score display area.
+        scoreDisplay.innerText = "You got " + correctCount + " out of " + leftContainers.length + " correct in this quiz.";
+        if (currentQuizIndex < quizzes.length - 1) {
+          nextButton.disabled = false;
+        } else {
+          nextButton.disabled = true;
+          const totalPairs = quizzes.length * leftContainers.length;
+          scoreDisplay.innerText += "\nAll quizzes completed! Your total score is " + totalScore + " out of " + totalPairs;
+        }
+        sendButton.disabled = true;
+        updateSidebar();
+        updateProgressBar();
+        // Show the lecture note area after clicking Send.
+        // You can customize the lecture text as needed (or use quiz-specific lecture notes if available).
+        lectureDisplay.innerText = "auto-自	peri-周	soma-身体　Ax-軸　glia-glue-糊 cyte-cell-細胞　micro-小<->macro-大　astro-star-星 oligo-オリゴ-少しの　cerebr-ker-horn-頭-大脳 sclero-skel-硬　de<->re gen-gender-生 sym-共　pathy-pathos-心　para-傍、副";
+        lectureDisplay.style.display = "block";
+      });
+      
+      nextButton.addEventListener('click', () => {
+        if (currentQuizIndex < quizzes.length - 1) {
+          loadQuiz(currentQuizIndex + 1);
+          nextButton.disabled = true;
+        }
+      });
+      
+      restartButton.addEventListener('click', () => {
+        if (confirm("Are you sure you want to restart? All progress will be lost.")) {
+          quizResults = new Array(quizzes.length).fill(null);
+          totalScore = 0;
+          currentQuizIndex = 0;
+          updateSidebar();
+          updateProgressBar();
+          loadQuiz(0);
+          scoreDisplay.innerText = "";
+          lectureDisplay.style.display = "none";
+          lectureDisplay.innerText = "";
+        }
+      });
+      
+      // Initialize the interface
+      updateSidebar();
+      loadQuiz(0);
+    });
+  </script>
+</body>
+</html>
