@@ -610,38 +610,38 @@ quiz.left.forEach((item, i) => {
   const circleDiv = document.createElement('div');
   circleDiv.className = 'left-circle';
   container.appendChild(circleDiv);
-  
+
   leftColumn.appendChild(container);
 
   // Trigger pointerdown event when left circle is clicked
   circleDiv.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    currentLeftCircle = circleDiv; // Use the circle as the start point
+    currentLeftCircle = circleDiv; // Use the left circle as the start point
     const start = getCenterCoords(currentLeftCircle);
-    tempLine = createSVGLine(start.x, start.y, start.x, start.y, '#888');
+    const end = getCenterCoords(currentRightCircle); // End at the right circle
+    tempLine = createSVGLine(start.x, start.y, end.x, end.y, '#888');
     tempLine.setAttribute('stroke-dasharray', '5,5');
     svgContainer.appendChild(tempLine);
     document.addEventListener('pointermove', pointerMoveHandler);
     document.addEventListener('pointerup', pointerUpHandler);
   });
 
-  // Trigger dblclick event when left rectangle is double-clicked
-  itemDiv.addEventListener('dblclick', (e) => {
-    e.preventDefault();
-    // The line should start from the corresponding circle
+  // Use touchstart for single tap event on touch devices (avoids double tap zoom)
+  itemDiv.addEventListener('touchstart', (e) => {
+    e.preventDefault();  // Prevent default zoom behavior on touch
+    // The line should start from the left circle and end at the right circle (rectangle touch)
     currentLeftCircle = container.querySelector('.left-circle'); // Find the circle for this rectangle
-    const start = getCenterCoords(currentLeftCircle);
-    tempLine = createSVGLine(start.x, start.y, start.x, start.y, '#888');
+    const start = getCenterCoords(currentLeftCircle);  // Start from the left circle
+    const end = getCenterCoords(currentRightCircle);  // End at the right circle
+    tempLine = createSVGLine(start.x, start.y, end.x, end.y, '#888');
     tempLine.setAttribute('stroke-dasharray', '5,5');
     svgContainer.appendChild(tempLine);
-    
+
     // Ensure that the same pointermove and pointerup logic applies as it does for the circle
     document.addEventListener('pointermove', pointerMoveHandler);
     document.addEventListener('pointerup', pointerUpHandler);
   });
 });
-
-
 
 // Populate right column with both rectangles and circles
 quiz.right.forEach((item, i) => {
@@ -658,7 +658,7 @@ quiz.right.forEach((item, i) => {
   const circleDiv = document.createElement('div');
   circleDiv.className = 'right-circle';
   container.appendChild(circleDiv);
-  
+
   rightColumn.appendChild(container);
 
   // Trigger pointerdown event when right circle is clicked
@@ -674,22 +674,24 @@ quiz.right.forEach((item, i) => {
     document.addEventListener('pointerup', pointerUpHandler);
   });
 
-  // Trigger dblclick event when right rectangle is double-clicked
-  itemDiv.addEventListener('dblclick', (e) => {
-    e.preventDefault();
-    // The line should start from the left circle and end at the right circle (rectangle double-click)
+  // Use touchstart for single tap event on touch devices (avoids double tap zoom)
+  itemDiv.addEventListener('touchstart', (e) => {
+    e.preventDefault();  // Prevent default zoom behavior on touch
+    // The line should start from the left circle and end at the right circle (rectangle touch)
     currentRightCircle = container.querySelector('.right-circle'); // Find the circle for this rectangle
     const start = getCenterCoords(currentLeftCircle);  // Start from the left circle
     const end = getCenterCoords(currentRightCircle);  // End at the right circle
     tempLine = createSVGLine(start.x, start.y, end.x, end.y, '#888');
     tempLine.setAttribute('stroke-dasharray', '5,5');
     svgContainer.appendChild(tempLine);
-    
+
     // Ensure that the same pointermove and pointerup logic applies as it does for the circle
     document.addEventListener('pointermove', pointerMoveHandler);
     document.addEventListener('pointerup', pointerUpHandler);
   });
 });
+
+
 
       }
 
