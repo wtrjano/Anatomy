@@ -594,102 +594,42 @@ function pointerUpHandler(e) {
         shuffleArray(rightItems);
 
         // Populate left column.
-// Populate left column with both rectangles and circles
-// Populate left column with both rectangles and circles
-quiz.left.forEach((item, i) => {
+// Populate left column
+leftItems.forEach((item, i) => {
   const container = document.createElement('div');
   container.className = 'left-item-container';
   container.id = 'left' + i;
-
   const itemDiv = document.createElement('div');
   itemDiv.className = 'left-item';
   itemDiv.textContent = item.text;
   container.appendChild(itemDiv);
-
-  // Circle for the left side, attached to the rectangle
   const circleDiv = document.createElement('div');
   circleDiv.className = 'left-circle';
   container.appendChild(circleDiv);
-
   leftColumn.appendChild(container);
 
-  // Trigger pointerdown event when left circle is clicked
-  circleDiv.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    currentLeftCircle = circleDiv; // Use the left circle as the start point
-    const start = getCenterCoords(currentLeftCircle);
-    const end = getCenterCoords(currentRightCircle); // End at the right circle
-    tempLine = createSVGLine(start.x, start.y, end.x, end.y, '#888');
-    tempLine.setAttribute('stroke-dasharray', '5,5');
-    svgContainer.appendChild(tempLine);
-    document.addEventListener('pointermove', pointerMoveHandler);
-    document.addEventListener('pointerup', pointerUpHandler);
-  });
-
-  // Use touchstart for single tap event on touch devices (avoids double tap zoom)
-  itemDiv.addEventListener('touchstart', (e) => {
-    e.preventDefault();  // Prevent default zoom behavior on touch
-    // The line should start from the left circle and end at the right circle (rectangle touch)
-    currentLeftCircle = container.querySelector('.left-circle'); // Find the circle for this rectangle
-    const start = getCenterCoords(currentLeftCircle);  // Start from the left circle
-    const end = getCenterCoords(currentRightCircle);  // End at the right circle
-    tempLine = createSVGLine(start.x, start.y, end.x, end.y, '#888');
-    tempLine.setAttribute('stroke-dasharray', '5,5');
-    svgContainer.appendChild(tempLine);
-
-    // Ensure that the same pointermove and pointerup logic applies as it does for the circle
-    document.addEventListener('pointermove', pointerMoveHandler);
-    document.addEventListener('pointerup', pointerUpHandler);
-  });
+  circleDiv.addEventListener('pointerdown', pointerDownHandler); // Event for circle
+  itemDiv.addEventListener('touchstart', pointerDownHandler); // Event for rectangle on touch
 });
 
-// Populate right column with both rectangles and circles
-quiz.right.forEach((item, i) => {
+// Populate right column
+rightItems.forEach((item, i) => {
   const container = document.createElement('div');
   container.className = 'right-item-container';
   container.id = 'right' + i;
-
   const itemDiv = document.createElement('div');
   itemDiv.className = 'right-item';
   itemDiv.textContent = item.text;
   container.appendChild(itemDiv);
-
-  // Circle for the right side, attached to the rectangle
   const circleDiv = document.createElement('div');
   circleDiv.className = 'right-circle';
   container.appendChild(circleDiv);
-
   rightColumn.appendChild(container);
 
-  // Trigger pointerdown event when right circle is clicked
-  circleDiv.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    currentRightCircle = circleDiv; // Use the right circle as the end point
-    const start = getCenterCoords(currentLeftCircle);  // Start from the left circle
-    const end = getCenterCoords(currentRightCircle);  // End at the right circle
-    tempLine = createSVGLine(start.x, start.y, end.x, end.y, '#888');
-    tempLine.setAttribute('stroke-dasharray', '5,5');
-    svgContainer.appendChild(tempLine);
-    document.addEventListener('pointermove', pointerMoveHandler);
-    document.addEventListener('pointerup', pointerUpHandler);
-  });
-
-  // Use touchstart for single tap event on touch devices (avoids double tap zoom)
-  itemDiv.addEventListener('touchstart', (e) => {
-    e.preventDefault();  // Prevent default zoom behavior on touch
-    // The line should start from the left circle and end at the right circle (rectangle touch)
-    currentRightCircle = container.querySelector('.right-circle'); // Find the circle for this rectangle
-    const start = getCenterCoords(currentLeftCircle);  // Start from the left circle
-    const end = getCenterCoords(currentRightCircle);  // End at the right circle
-    tempLine = createSVGLine(start.x, start.y, end.x, end.y, '#888');
-    tempLine.setAttribute('stroke-dasharray', '5,5');
-    svgContainer.appendChild(tempLine);
-
-    // Ensure that the same pointermove and pointerup logic applies as it does for the circle
-    document.addEventListener('pointermove', pointerMoveHandler);
-    document.addEventListener('pointerup', pointerUpHandler);
-  });
+  circleDiv.addEventListener('pointerdown', pointerDownHandler); // Event for circle
+  itemDiv.addEventListener('touchstart', pointerDownHandler); // Event for rectangle on touch
 });
+
 
 
 
