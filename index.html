@@ -722,7 +722,7 @@ rightItems.forEach((item, i) => {
         quizResults[currentQuizIndex] = correctCount;
         totalScore = quizResults.reduce((acc, val) => acc + (val || 0), 0);
         // Update the score display area.
-        scoreDisplay.innerText = "You got " + correctCount + " out of " + leftContainers.length + " correct in this quiz.";
+        scoreDisplay.innerText = "あなたは "+ leftContainers.length + " 中" + correctCount + " 個正解しました。 " ;
         if (currentQuizIndex < quizzes.length - 1) {
           nextButton.disabled = false;
         } else {
