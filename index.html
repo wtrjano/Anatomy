@@ -81,9 +81,10 @@
       padding: 10px;
       box-sizing: border-box;
       min-height: 300px;
+	  gap: 100px;
     }
     #leftColumn, #rightColumn {
-      width: 45%;
+      width: 30%;
       display: flex;
       flex-direction: column;
       gap: 20px;
@@ -368,7 +369,7 @@
       let connections = {}; // key: left container id, value: { rightCircle, line }
       let tempLine = null;      // temporary line during dragging
       let currentLeftCircle = null; // currently dragged left circle
-      const SNAP_THRESHOLD = 30;    // pixels
+      const SNAP_THRESHOLD = 200;    // pixels
 
       // =======================
       // DOM Elements
@@ -463,65 +464,75 @@
 
       // =======================
       // Drag-and-Drop Handlers
-      // =======================
-      function pointerDownHandler(e) {
-        e.preventDefault();
-        // Do nothing if this quiz is already completed.
-        if (quizResults[currentQuizIndex] !== null) return;
-        currentLeftCircle = e.currentTarget;
-        const leftContainer = currentLeftCircle.parentElement;
-        // Remove any existing connection for this left item.
-        if (connections[leftContainer.id]) {
-          svgContainer.removeChild(connections[leftContainer.id].line);
-          delete connections[leftContainer.id];
-        }
-        const start = getCenterCoords(currentLeftCircle);
-        tempLine = createSVGLine(start.x, start.y, start.x, start.y, '#888');
-        tempLine.setAttribute('stroke-dasharray', '5,5');
-        svgContainer.appendChild(tempLine);
-        document.addEventListener('pointermove', pointerMoveHandler);
-        document.addEventListener('pointerup', pointerUpHandler);
-      }
-      function pointerMoveHandler(e) {
-        const containerRect = document.getElementById('quizContainer').getBoundingClientRect();
-        let x = e.clientX - containerRect.left;
-        let y = e.clientY - containerRect.top;
-        const snap = checkSnap(x, y);
-        if (snap) { x = snap.x; y = snap.y; }
-        tempLine.setAttribute('x2', x);
-        tempLine.setAttribute('y2', y);
-      }
-      function pointerUpHandler(e) {
-        document.removeEventListener('pointermove', pointerMoveHandler);
-        document.removeEventListener('pointerup', pointerUpHandler);
-        const containerRect = document.getElementById('quizContainer').getBoundingClientRect();
-        let x = e.clientX - containerRect.left;
-        let y = e.clientY - containerRect.top;
-        const snap = checkSnap(x, y);
-        const leftContainer = currentLeftCircle.parentElement;
-        if (snap) {
-          x = snap.x; y = snap.y;
-          const rightCircle = snap.targetCircle;
-          // Remove any connection that already uses this right circle.
-          for (const key in connections) {
-            if (connections[key].rightCircle === rightCircle) {
-              svgContainer.removeChild(connections[key].line);
-              delete connections[key];
-              break;
-            }
-          }
-          svgContainer.removeChild(tempLine);
-          tempLine = null;
-          const start = getCenterCoords(currentLeftCircle);
-          const permanentLine = createSVGLine(start.x, start.y, x, y);
-          svgContainer.appendChild(permanentLine);
-          connections[leftContainer.id] = { rightCircle, line: permanentLine };
-        } else {
-          if (tempLine) { svgContainer.removeChild(tempLine); tempLine = null; }
-        }
-        currentLeftCircle = null;
-      }
+		// =======================
+		function pointerDownHandler(e) {
+		  e.preventDefault();
+		  // Now both the left rectangles and left circles are valid selection points
+		  if (quizResults[currentQuizIndex] !== null) return;
+		  currentLeftCircle = e.currentTarget;
 
+		  // Check if the selection was on a left rectangle or circle
+		  if (currentLeftCircle.classList.contains('left-item') || currentLeftCircle.classList.contains('left-circle')) {
+			const leftContainer = currentLeftCircle.parentElement;
+			if (connections[leftContainer.id]) {
+			  svgContainer.removeChild(connections[leftContainer.id].line);
+			  delete connections[leftContainer.id];
+			}
+
+    const start = getCenterCoords(currentLeftCircle);
+    tempLine = createSVGLine(start.x, start.y, start.x, start.y, '#888');
+    tempLine.setAttribute('stroke-dasharray', '5,5');
+    svgContainer.appendChild(tempLine);
+    document.addEventListener('pointermove', pointerMoveHandler);
+    document.addEventListener('pointerup', pointerUpHandler);
+  }
+}
+
+	// =======================
+	function pointerMoveHandler(e) {
+	  const containerRect = document.getElementById('quizContainer').getBoundingClientRect();
+	  let x = e.clientX - containerRect.left;
+	  let y = e.clientY - containerRect.top;
+
+	  const snap = checkSnap(x, y);
+	  if (snap) { x = snap.x; y = snap.y; }
+	  tempLine.setAttribute('x2', x);
+	  tempLine.setAttribute('y2', y);
+	}
+
+	// =======================
+	function pointerUpHandler(e) {
+	  document.removeEventListener('pointermove', pointerMoveHandler);
+	  document.removeEventListener('pointerup', pointerUpHandler);
+	  const containerRect = document.getElementById('quizContainer').getBoundingClientRect();
+	  let x = e.clientX - containerRect.left;
+	  let y = e.clientY - containerRect.top;
+	  const snap = checkSnap(x, y);
+
+	  const leftContainer = currentLeftCircle.parentElement;
+	  if (snap) {
+		x = snap.x; y = snap.y;
+		const rightCircle = snap.targetCircle;
+
+		// Remove any connection that already uses this right circle
+		for (const key in connections) {
+		  if (connections[key].rightCircle === rightCircle) {
+			svgContainer.removeChild(connections[key].line);
+			delete connections[key];
+			break;
+		  }
+		}
+		svgContainer.removeChild(tempLine);
+		tempLine = null;
+		const start = getCenterCoords(currentLeftCircle);
+		const permanentLine = createSVGLine(start.x, start.y, x, y);
+		svgContainer.appendChild(permanentLine);
+		connections[leftContainer.id] = { rightCircle, line: permanentLine };
+	  } else {
+		if (tempLine) { svgContainer.removeChild(tempLine); tempLine = null; }
+	  }
+	  currentLeftCircle = null;
+	}
       // =======================
       // Quiz Page Management
       // =======================
@@ -564,9 +575,11 @@
           itemDiv.textContent = item.text;
           itemDiv.setAttribute('data-match', item.match);
           container.appendChild(itemDiv);
+	    // Circle for the left side, attached to the rectangle
           const circleDiv = document.createElement('div');
           circleDiv.className = 'left-circle';
           container.appendChild(circleDiv);
+		  
           leftColumn.appendChild(container);
           circleDiv.addEventListener('pointerdown', pointerDownHandler);
         });
@@ -585,6 +598,7 @@
           itemDiv.setAttribute('data-match', item.match);
           container.appendChild(itemDiv);
           rightColumn.appendChild(container);
+    circleDiv.addEventListener('pointerdown', pointerDownHandler);
         });
       }
 
