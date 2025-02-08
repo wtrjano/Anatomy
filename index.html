@@ -489,50 +489,78 @@
 }
 
 	// =======================
-	function pointerMoveHandler(e) {
-	  const containerRect = document.getElementById('quizContainer').getBoundingClientRect();
-	  let x = e.clientX - containerRect.left;
-	  let y = e.clientY - containerRect.top;
+// =======================
+function pointerMoveHandler(e) {
+  const containerRect = document.getElementById('quizContainer').getBoundingClientRect();
+  let x = e.clientX - containerRect.left;
+  let y = e.clientY - containerRect.top;
 
-	  const snap = checkSnap(x, y);
-	  if (snap) { x = snap.x; y = snap.y; }
-	  tempLine.setAttribute('x2', x);
-	  tempLine.setAttribute('y2', y);
-	}
+  // Check if the line should snap to the right circle
+  const snap = checkSnap(x, y);
+  if (snap) {
+    x = snap.x;
+    y = snap.y;
 
-	// =======================
-	function pointerUpHandler(e) {
-	  document.removeEventListener('pointermove', pointerMoveHandler);
-	  document.removeEventListener('pointerup', pointerUpHandler);
-	  const containerRect = document.getElementById('quizContainer').getBoundingClientRect();
-	  let x = e.clientX - containerRect.left;
-	  let y = e.clientY - containerRect.top;
-	  const snap = checkSnap(x, y);
+    // Change the line to solid when it reaches the right circle
+    tempLine.setAttribute('stroke-dasharray', '0'); // Solid line when snapping to right circle
+  }
+  tempLine.setAttribute('x2', x);
+  tempLine.setAttribute('y2', y);
+}
 
-	  const leftContainer = currentLeftCircle.parentElement;
-	  if (snap) {
-		x = snap.x; y = snap.y;
-		const rightCircle = snap.targetCircle;
+// =======================
+// =======================
+function pointerUpHandler(e) {
+  document.removeEventListener('pointermove', pointerMoveHandler);
+  document.removeEventListener('pointerup', pointerUpHandler);
 
-		// Remove any connection that already uses this right circle
-		for (const key in connections) {
-		  if (connections[key].rightCircle === rightCircle) {
-			svgContainer.removeChild(connections[key].line);
-			delete connections[key];
-			break;
-		  }
-		}
-		svgContainer.removeChild(tempLine);
-		tempLine = null;
-		const start = getCenterCoords(currentLeftCircle);
-		const permanentLine = createSVGLine(start.x, start.y, x, y);
-		svgContainer.appendChild(permanentLine);
-		connections[leftContainer.id] = { rightCircle, line: permanentLine };
-	  } else {
-		if (tempLine) { svgContainer.removeChild(tempLine); tempLine = null; }
-	  }
-	  currentLeftCircle = null;
-	}
+  const containerRect = document.getElementById('quizContainer').getBoundingClientRect();
+  let x = e.clientX - containerRect.left;
+  let y = e.clientY - containerRect.top;
+
+  // Check if the pointer is near any right circle (for snapping)
+  const snap = checkSnap(x, y);
+  const leftContainer = currentLeftCircle.parentElement;
+
+  if (snap) {
+    x = snap.x; y = snap.y;
+    const rightCircle = snap.targetCircle;
+
+    // Remove any connection that already uses this right circle
+    for (const key in connections) {
+      if (connections[key].rightCircle === rightCircle) {
+        svgContainer.removeChild(connections[key].line);
+        delete connections[key];
+        break;
+      }
+    }
+
+    // Create the final permanent line (solid)
+    const start = getCenterCoords(currentLeftCircle);
+    const permanentLine = createSVGLine(start.x, start.y, x, y);
+    permanentLine.setAttribute('stroke-dasharray', '0'); // Solid line
+    svgContainer.appendChild(permanentLine);
+
+    // Add the line to connections map (this should not happen before line is solidified)
+    connections[leftContainer.id] = { rightCircle, line: permanentLine };
+
+    // Only remove the temporary line after it's been replaced with the permanent one
+    if (tempLine) {
+      svgContainer.removeChild(tempLine);
+      tempLine = null;
+    }
+  } else {
+    // If no snap occurs, remove the temporary line (only when no right circle snap happens)
+    if (tempLine) {
+      svgContainer.removeChild(tempLine);
+      tempLine = null;
+    }
+  }
+
+  currentLeftCircle = null;
+}
+
+
       // =======================
       // Quiz Page Management
       // =======================
@@ -566,40 +594,103 @@
         shuffleArray(rightItems);
 
         // Populate left column.
-        leftItems.forEach((item, i) => {
-          const container = document.createElement('div');
-          container.className = 'left-item-container';
-          container.id = 'left' + i;
-          const itemDiv = document.createElement('div');
-          itemDiv.className = 'left-item';
-          itemDiv.textContent = item.text;
-          itemDiv.setAttribute('data-match', item.match);
-          container.appendChild(itemDiv);
-	    // Circle for the left side, attached to the rectangle
-          const circleDiv = document.createElement('div');
-          circleDiv.className = 'left-circle';
-          container.appendChild(circleDiv);
-		  
-          leftColumn.appendChild(container);
-          circleDiv.addEventListener('pointerdown', pointerDownHandler);
-        });
+// Populate left column with both rectangles and circles
+// Populate left column with both rectangles and circles
+quiz.left.forEach((item, i) => {
+  const container = document.createElement('div');
+  container.className = 'left-item-container';
+  container.id = 'left' + i;
 
-        // Populate right column.
-        rightItems.forEach((item, i) => {
-          const container = document.createElement('div');
-          container.className = 'right-item-container';
-          container.id = 'right' + i;
-          const circleDiv = document.createElement('div');
-          circleDiv.className = 'right-circle';
-          container.appendChild(circleDiv);
-          const itemDiv = document.createElement('div');
-          itemDiv.className = 'right-item';
-          itemDiv.textContent = item.text;
-          itemDiv.setAttribute('data-match', item.match);
-          container.appendChild(itemDiv);
-          rightColumn.appendChild(container);
-    circleDiv.addEventListener('pointerdown', pointerDownHandler);
-        });
+  const itemDiv = document.createElement('div');
+  itemDiv.className = 'left-item';
+  itemDiv.textContent = item.text;
+  container.appendChild(itemDiv);
+
+  // Circle for the left side, attached to the rectangle
+  const circleDiv = document.createElement('div');
+  circleDiv.className = 'left-circle';
+  container.appendChild(circleDiv);
+  
+  leftColumn.appendChild(container);
+
+  // Trigger pointerdown event when left circle is clicked
+  circleDiv.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    currentLeftCircle = circleDiv; // Use the circle as the start point
+    const start = getCenterCoords(currentLeftCircle);
+    tempLine = createSVGLine(start.x, start.y, start.x, start.y, '#888');
+    tempLine.setAttribute('stroke-dasharray', '5,5');
+    svgContainer.appendChild(tempLine);
+    document.addEventListener('pointermove', pointerMoveHandler);
+    document.addEventListener('pointerup', pointerUpHandler);
+  });
+
+  // Trigger dblclick event when left rectangle is double-clicked
+  itemDiv.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    // The line should start from the corresponding circle
+    currentLeftCircle = container.querySelector('.left-circle'); // Find the circle for this rectangle
+    const start = getCenterCoords(currentLeftCircle);
+    tempLine = createSVGLine(start.x, start.y, start.x, start.y, '#888');
+    tempLine.setAttribute('stroke-dasharray', '5,5');
+    svgContainer.appendChild(tempLine);
+    
+    // Ensure that the same pointermove and pointerup logic applies as it does for the circle
+    document.addEventListener('pointermove', pointerMoveHandler);
+    document.addEventListener('pointerup', pointerUpHandler);
+  });
+});
+
+
+
+// Populate right column with both rectangles and circles
+quiz.right.forEach((item, i) => {
+  const container = document.createElement('div');
+  container.className = 'right-item-container';
+  container.id = 'right' + i;
+
+  const itemDiv = document.createElement('div');
+  itemDiv.className = 'right-item';
+  itemDiv.textContent = item.text;
+  container.appendChild(itemDiv);
+
+  // Circle for the right side, attached to the rectangle
+  const circleDiv = document.createElement('div');
+  circleDiv.className = 'right-circle';
+  container.appendChild(circleDiv);
+  
+  rightColumn.appendChild(container);
+
+  // Trigger pointerdown event when right circle is clicked
+  circleDiv.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    currentRightCircle = circleDiv; // Use the right circle as the end point
+    const start = getCenterCoords(currentLeftCircle);  // Start from the left circle
+    const end = getCenterCoords(currentRightCircle);  // End at the right circle
+    tempLine = createSVGLine(start.x, start.y, end.x, end.y, '#888');
+    tempLine.setAttribute('stroke-dasharray', '5,5');
+    svgContainer.appendChild(tempLine);
+    document.addEventListener('pointermove', pointerMoveHandler);
+    document.addEventListener('pointerup', pointerUpHandler);
+  });
+
+  // Trigger dblclick event when right rectangle is double-clicked
+  itemDiv.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    // The line should start from the left circle and end at the right circle (rectangle double-click)
+    currentRightCircle = container.querySelector('.right-circle'); // Find the circle for this rectangle
+    const start = getCenterCoords(currentLeftCircle);  // Start from the left circle
+    const end = getCenterCoords(currentRightCircle);  // End at the right circle
+    tempLine = createSVGLine(start.x, start.y, end.x, end.y, '#888');
+    tempLine.setAttribute('stroke-dasharray', '5,5');
+    svgContainer.appendChild(tempLine);
+    
+    // Ensure that the same pointermove and pointerup logic applies as it does for the circle
+    document.addEventListener('pointermove', pointerMoveHandler);
+    document.addEventListener('pointerup', pointerUpHandler);
+  });
+});
+
       }
 
       // =======================
