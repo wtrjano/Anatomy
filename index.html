@@ -82,6 +82,7 @@
       box-sizing: border-box;
       min-height: 300px;
 	  gap: 100px;
+      touch-action: none;
     }
     #leftColumn, #rightColumn {
       width: 30%;
@@ -630,8 +631,7 @@ container.addEventListener('pointerdown', (e) => {
 });
   // Use touchstart for single tap event on touch devices (avoids double tap zoom)
 container.addEventListener('touchstart', (e) => {
-  e.preventDefault();
-  // Force using the left circle even when the rectangle is touched:
+  e.preventDefault(); // Prevents default scrolling behavior.
   currentLeftCircle = container.querySelector('.left-circle');
   const start = getCenterCoords(currentLeftCircle);
   tempLine = createSVGLine(start.x, start.y, start.x, start.y, '#888');
@@ -639,7 +639,7 @@ container.addEventListener('touchstart', (e) => {
   svgContainer.appendChild(tempLine);
   document.addEventListener('pointermove', pointerMoveHandler);
   document.addEventListener('pointerup', pointerUpHandler);
-});
+}, { passive: false });
 
 });
 
