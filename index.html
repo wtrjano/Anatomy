@@ -613,33 +613,34 @@ leftItems.forEach((item, i) => {
   leftColumn.appendChild(container);
 
   // Trigger pointerdown event when left circle is clicked
-  circleDiv.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    currentLeftCircle = circleDiv; // Use the left circle as the start point
-    const start = getCenterCoords(currentLeftCircle);  // Start from the left circle
-    const end = getCenterCoords(currentRightCircle); // Ensure it's set to the center of the right circle for the initial line
-    tempLine = createSVGLine(start.x, start.y, end.x, end.y, '#888');
-    tempLine.setAttribute('stroke-dasharray', '5,5');
-    svgContainer.appendChild(tempLine);
-    document.addEventListener('pointermove', pointerMoveHandler);
-    document.addEventListener('pointerup', pointerUpHandler);
-  });
-
+  //circleDiv.addEventListener('pointerdown', pointerDownHandler);
+  
+  // For touch devices, attach touchstart on the rectangle—but force use of the left circle.
+container.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  if (quizResults[currentQuizIndex] !== null) return;
+  // Always force the starting element to be the left circle within this container:
+  currentLeftCircle = container.querySelector('.left-circle');
+  const start = getCenterCoords(currentLeftCircle);
+  tempLine = createSVGLine(start.x, start.y, start.x, start.y, '#888');
+  tempLine.setAttribute('stroke-dasharray', '5,5');
+  svgContainer.appendChild(tempLine);
+  document.addEventListener('pointermove', pointerMoveHandler);
+  document.addEventListener('pointerup', pointerUpHandler);
+});
   // Use touchstart for single tap event on touch devices (avoids double tap zoom)
-  itemDiv.addEventListener('touchstart', (e) => {
-    e.preventDefault();  // Prevent default zoom behavior on touch
-    // The line should start from the left circle and end at the right circle (rectangle touch)
-    currentLeftCircle = container.querySelector('.left-circle'); // Ensure we're using the left circle
-    const start = getCenterCoords(currentLeftCircle);  // Start from the left circle
-    const end = getCenterCoords(currentRightCircle);  // End at the right circle
-    tempLine = createSVGLine(start.x, start.y, end.x, end.y, '#888');
-    tempLine.setAttribute('stroke-dasharray', '5,5');
-    svgContainer.appendChild(tempLine);
+container.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  // Force using the left circle even when the rectangle is touched:
+  currentLeftCircle = container.querySelector('.left-circle');
+  const start = getCenterCoords(currentLeftCircle);
+  tempLine = createSVGLine(start.x, start.y, start.x, start.y, '#888');
+  tempLine.setAttribute('stroke-dasharray', '5,5');
+  svgContainer.appendChild(tempLine);
+  document.addEventListener('pointermove', pointerMoveHandler);
+  document.addEventListener('pointerup', pointerUpHandler);
+});
 
-    // Ensure that the same pointermove and pointerup logic applies as it does for the circle
-    document.addEventListener('pointermove', pointerMoveHandler);
-    document.addEventListener('pointerup', pointerUpHandler);
-  });
 });
 
 // Populate right column with both rectangles and circles
@@ -722,7 +723,7 @@ rightItems.forEach((item, i) => {
         quizResults[currentQuizIndex] = correctCount;
         totalScore = quizResults.reduce((acc, val) => acc + (val || 0), 0);
         // Update the score display area.
-        scoreDisplay.innerText = "あなたは "+ leftContainers.length + " 問中" + correctCount + " 個正解しました。 " ;
+        scoreDisplay.innerText = "あなたは "+ leftContainers.length + " 問中" + correctCount + " 問正解しました。 " ;
         if (currentQuizIndex < quizzes.length - 1) {
           nextButton.disabled = false;
         } else {
