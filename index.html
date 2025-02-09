@@ -465,19 +465,16 @@
       // =======================
       // Drag-and-Drop Handlers
 		// =======================
-		function pointerDownHandler(e) {
-		  e.preventDefault();
-		  // Now both the left rectangles and left circles are valid selection points
-		  if (quizResults[currentQuizIndex] !== null) return;
-		  currentLeftCircle = e.currentTarget;
-
-		  // Check if the selection was on a left rectangle or circle
-		  if (currentLeftCircle.classList.contains('left-item') || currentLeftCircle.classList.contains('left-circle')) {
-			const leftContainer = currentLeftCircle.parentElement;
-			if (connections[leftContainer.id]) {
-			  svgContainer.removeChild(connections[leftContainer.id].line);
-			  delete connections[leftContainer.id];
-			}
+			function pointerDownHandler(e) {
+			  e.preventDefault();
+			  if (quizResults[currentQuizIndex] !== null) return;
+			  // Always use the left circle as the start point:
+			  currentLeftCircle = e.currentTarget; 
+			  const leftContainer = currentLeftCircle.parentElement;
+			  if (connections[leftContainer.id]) {
+			    svgContainer.removeChild(connections[leftContainer.id].line);
+			    delete connections[leftContainer.id];
+			  }
 
     const start = getCenterCoords(currentLeftCircle);
     tempLine = createSVGLine(start.x, start.y, start.x, start.y, '#888');
