@@ -465,16 +465,19 @@
       // =======================
       // Drag-and-Drop Handlers
 		// =======================
-			function pointerDownHandler(e) {
-			  e.preventDefault();
-			  if (quizResults[currentQuizIndex] !== null) return;
-			  // Always use the left circle as the start point:
-			  currentLeftCircle = e.currentTarget; 
-			  const leftContainer = currentLeftCircle.parentElement;
-			  if (connections[leftContainer.id]) {
-			    svgContainer.removeChild(connections[leftContainer.id].line);
-			    delete connections[leftContainer.id];
-			  }
+		function pointerDownHandler(e) {
+		  e.preventDefault();
+		  // Now both the left rectangles and left circles are valid selection points
+		  if (quizResults[currentQuizIndex] !== null) return;
+		  currentLeftCircle = e.currentTarget;
+
+		  // Check if the selection was on a left rectangle or circle
+		  if (currentLeftCircle.classList.contains('left-item') || currentLeftCircle.classList.contains('left-circle')) {
+			const leftContainer = currentLeftCircle.parentElement;
+			if (connections[leftContainer.id]) {
+			  svgContainer.removeChild(connections[leftContainer.id].line);
+			  delete connections[leftContainer.id];
+			}
 
     const start = getCenterCoords(currentLeftCircle);
     tempLine = createSVGLine(start.x, start.y, start.x, start.y, '#888');
@@ -595,28 +598,27 @@ leftItems.forEach((item, i) => {
   const container = document.createElement('div');
   container.className = 'left-item-container';
   container.id = 'left' + i;
-  
+
   const itemDiv = document.createElement('div');
   itemDiv.className = 'left-item';
   itemDiv.textContent = item.text;
+  itemDiv.setAttribute('data-match', item.match);
   container.appendChild(itemDiv);
-  
+
+  // Circle for the left side, attached to the rectangle
   const circleDiv = document.createElement('div');
   circleDiv.className = 'left-circle';
   container.appendChild(circleDiv);
-  
+
   leftColumn.appendChild(container);
-  
-  // Attach pointerdown only to the circle.
-  circleDiv.addEventListener('pointerdown', pointerDownHandler);
-  
-  // For touch devices, attach touchstart on the rectangle—but force use of the left circle.
-  itemDiv.addEventListener('touchstart', (e) => {
-    e.preventDefault(); // Prevent default zoom behavior.
-    currentLeftCircle = container.querySelector('.left-circle'); // Force using the circle.
-    const start = getCenterCoords(currentLeftCircle);
-    // Create the temporary line starting from the circle.
-    tempLine = createSVGLine(start.x, start.y, start.x, start.y, '#888');
+
+  // Trigger pointerdown event when left circle is clicked
+  circleDiv.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    currentLeftCircle = circleDiv; // Use the left circle as the start point
+    const start = getCenterCoords(currentLeftCircle);  // Start from the left circle
+    const end = getCenterCoords(currentRightCircle); // Ensure it's set to the center of the right circle for the initial line
+    tempLine = createSVGLine(start.x, start.y, end.x, end.y, '#888');
     tempLine.setAttribute('stroke-dasharray', '5,5');
     svgContainer.appendChild(tempLine);
     document.addEventListener('pointermove', pointerMoveHandler);
