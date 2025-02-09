@@ -467,26 +467,17 @@
 		// =======================
 		function pointerDownHandler(e) {
 		  e.preventDefault();
+		  // Now both the left rectangles and left circles are valid selection points
 		  if (quizResults[currentQuizIndex] !== null) return;
-		  // Always use the left circle as the start point:
-		  currentLeftCircle = e.currentTarget; 
-		  const leftContainer = currentLeftCircle.parentElement;
-		  if (connections[leftContainer.id]) {
-		    svgContainer.removeChild(connections[leftContainer.id].line);
-		    delete connections[leftContainer.id];
-		  }
-		  
-		  // NEW: Get the center of the left circle and create the line starting from that point.
-		  const start = getCenterCoords(currentLeftCircle);
-		  tempLine = createSVGLine(start.x, start.y, start.x, start.y, '#888');
-		  tempLine.setAttribute('stroke-dasharray', '5,5');
-		  svgContainer.appendChild(tempLine);
-		  
-		  document.addEventListener('pointermove', pointerMoveHandler);
-		  document.addEventListener('pointerup', pointerUpHandler);
-		}
+		  currentLeftCircle = e.currentTarget;
 
-
+		  // Check if the selection was on a left rectangle or circle
+		  if (currentLeftCircle.classList.contains('left-item') || currentLeftCircle.classList.contains('left-circle')) {
+			const leftContainer = currentLeftCircle.parentElement;
+			if (connections[leftContainer.id]) {
+			  svgContainer.removeChild(connections[leftContainer.id].line);
+			  delete connections[leftContainer.id];
+			}
 
     const start = getCenterCoords(currentLeftCircle);
     tempLine = createSVGLine(start.x, start.y, start.x, start.y, '#888');
