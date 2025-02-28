@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Drag-and-Connect Quiz - Science Quiz</title>
+  <style>
+    /* Basic reset and fonts */
+    body { margin: 0; font-family: Arial, sans-serif; }
+    
+    /* Integrated title at the very top */
+    #integratedTitleContainer {
+      text-align: center;
+      padding: 10px;
+      background: #f0f0f0;
+      border-bottom: 1px solid #ccc;
+    }
+    
+    /* Layout: sidebar (quiz list) + quiz main area */
+    #mainContainer {
+      display: flex;
+      height: calc(100vh - 60px);
+    }
+    /* Sidebar (left) */
+    #sidebar {
+      width: 20%;
+      border-right: 1px solid #ccc;
+      padding: 10px;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+    #quizList {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #quizList li {
+      cursor: pointer;
+      padding: 5px;
+      border-bottom: 1px solid #ccc;
+    }
+    #quizList li.active {
+      background: #ddd;
+    }
+    #quizList li.completed {
+      font-weight: bold;
+    }
+    
+    /* Quiz main area (right) */
+    #quizMain {
+      width: 80%;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    #quizPageTitle {
+      margin: 0;
+      padding: 5px;
+    }
+    
+    /* Progress Bar */
+    #progressBarContainer {
+      width: 100%;
+      height: 20px;
+      background: #eee;
+      border: 1px solid #ccc;
+      margin: 10px 0;
+      position: relative;
+    }
+    #progressBar {
+      height: 100%;
+      width: 0;
+      background: green;
+    }
+    
+    /* Quiz container for drag-and-connect */
+    #quizContainer {
+      position: relative;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      border: 1px solid #ccc;
+      padding: 10px;
+      box-sizing: border-box;
+      min-height: 300px;
+    }
+    #leftColumn, #rightColumn {
+      width: 45%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      position: relative;
+    }
+    
+    /* Left item container */
+    .left-item-container {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .left-item {
+      padding: 10px;
+      border: 2px solid #888;
+      border-radius: 4px;
+      background: #f9f9f9;
+      text-align: center;
+    }
+    .left-circle {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ccc;
+      border: 2px solid #888;
+      position: absolute;
+      top: 50%;
+      right: -30px;
+      transform: translateY(-50%);
+      cursor: pointer;
+    }
+    
+    /* Right item container */
+    .right-item-container {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .right-item {
+      padding: 10px;
+      border: 2px solid #888;
+      border-radius: 4px;
+      background: #f9f9f9;
+      text-align: center;
+    }
+    .right-circle {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ccc;
+      border: 2px solid #888;
+      position: absolute;
+      top: 50%;
+      left: -30px;
+      transform: translateY(-50%);
+      cursor: pointer;
+    }
+    
+    /* SVG overlay */
+    #svgContainer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    
+    /* Button container */
+    #buttonContainer {
+      margin-top: 10px;
+      text-align: center;
+    }
+    #buttonContainer button {
+      margin: 0 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+    
+    /* Score Display Area */
+    #scoreDisplay {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      white-space: pre-line;
+    }
+    
+    /* Lecture Note Area */
+    #lectureDisplay {
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      line-height: 1.2;
+      max-height: 7.2em;
+      overflow-y: auto;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="integratedTitleContainer">
+    <h1 id="integratedTitle">Science Quiz</h1>
+  </div>
+  <div id="mainContainer">
+    <div id="sidebar">
+      <h3>Quiz List</h3>
+      <ul id="quizList"></ul>
+    </div>
+    <div id="quizMain">
+      <h2 id="quizPageTitle">Quiz 1</h2>
+      <div id="progressBarContainer">
+        <div id="progressBar"></div>
+      </div>
+      <div id="quizContainer">
+        <div id="leftColumn"></div>
+        <div id="rightColumn"></div>
+        <svg id="svgContainer"></svg>
+      </div>
+      <div id="buttonContainer">
+        <button id="sendButton">Send</button>
+        <button id="nextButton" disabled>Next</button>
+        <button id="restartButton">Restart</button>
+      </div>
+      <div id="scoreDisplay"></div>
+      <div id="lectureDisplay"></div>
+    </div>
+  </div>
+  
+  <script>
+    // The quizzes data generated from the CSV/XLSX file:
+    const quizzes = [
+  {
+    "title": "軟骨",
+    "left": [
+      {
+        "text": "軟骨組織",
+        "match": "q1_item0"
+      },
+      {
+        "text": "ガラス軟骨",
+        "match": "q1_item1"
+      },
+      {
+        "text": "線維軟骨",
+        "match": "q1_item2"
+      },
+      {
+        "text": "弾性軟骨",
+        "match": "q1_item3"
+      },
+      {
+        "text": "軟骨細胞",
+        "match": "q1_item4"
+      }
+    ],
+    "right": [
+      {
+        "text": "Cartilage tissue",
+        "match": "q1_item0"
+      },
+      {
+        "text": "Hyaline cartilage",
+        "match": "q1_item1"
+      },
+      {
+        "text": "Fibrocartilage",
+        "match": "q1_item2"
+      },
+      {
+        "text": "Elastic cartilage",
+        "match": "q1_item3"
+      },
+      {
+        "text": "Chondrocytes",
+        "match": "q1_item4"
+      }
+    ]
+  },
+  {
+    "title": "骨構造(ミクロ)",
+    "left": [
+      {
+        "text": "骨細胞",
+        "match": "q2_item5"
+      },
+      {
+        "text": "破骨細胞",
+        "match": "q2_item6"
+      },
+      {
+        "text": "骨芽細胞",
+        "match": "q2_item7"
+      },
+      {
+        "text": "オステオン",
+        "match": "q2_item8"
+      },
+      {
+        "text": "ハバース管",
+        "match": "q2_item9"
+      }
+    ],
+    "right": [
+      {
+        "text": "Osteocyte",
+        "match": "q2_item5"
+      },
+      {
+        "text": "Osteoclasts",
+        "match": "q2_item6"
+      },
+      {
+        "text": "Osteoblast",
+        "match": "q2_item7"
+      },
+      {
+        "text": "Osteon",
+        "match": "q2_item8"
+      },
+      {
+        "text": "Haversian canal",
+        "match": "q2_item9"
+      }
+    ]
+  },
+  {
+    "title": "骨構造(マクロ)",
+    "left": [
+      {
+        "text": "緻密骨",
+        "match": "q3_item10"
+      },
+      {
+        "text": "海綿骨",
+        "match": "q3_item11"
+      },
+      {
+        "text": "骨膜",
+        "match": "q3_item12"
+      },
+      {
+        "text": "骨幹",
+        "match": "q3_item13"
+      },
+      {
+        "text": "骨端",
+        "match": "q3_item14"
+      }
+    ],
+    "right": [
+      {
+        "text": "cortical(compact)  bone",
+        "match": "q3_item10"
+      },
+      {
+        "text": "cancellous (trabecular) bone",
+        "match": "q3_item11"
+      },
+      {
+        "text": "periosteum",
+        "match": "interstitial growth"
+      },
+      {
+        "text": "diaphysis",
+        "match": "q3_item13"
+      },
+      {
+        "text": "epiphysis",
+        "match": "q3_item14"
+      }
+    ]
+  },
+  {
+    "title": "骨・軟骨成長",
+    "left": [
+      {
+        "text": "膜内骨化",
+        "match": "q4_item15"
+      },
+      {
+        "text": "軟骨内骨化",
+        "match": "q4_item16"
+      },
+      {
+        "text": "間質成長",
+        "match": "q4_item17"
+      },
+      {
+        "text": "付加成長",
+        "match": "q4_item18"
+      },
+      {
+        "text": "石灰化",
+        "match": "q4_item19"
+      }
+    ],
+    "right": [
+      {
+        "text": "endomembrane ossification",
+        "match": "q4_item15"
+      },
+      {
+        "text": "endochondral ossification",
+        "match": "q4_item16"
+      },
+      {
+        "text": "interstitial growth",
+        "match": "q4_item17"
+      },
+      {
+        "text": "appositional growth",
+        "match": "q4_item18"
+      },
+      {
+        "text": "calcification",
+        "match": "q4_item19"
+      }
+    ]
+  },
+  {
+    "title": "治癒",
+    "left": [
+      {
+        "text": "線維骨",
+        "match": "q5_item20"
+      },
+      {
+        "text": "骨形成タンパク",
+        "match": "q5_item21"
+      },
+      {
+        "text": "類骨",
+        "match": "q5_item22"
+      },
+      {
+        "text": "くる病",
+        "match": "q5_item23"
+      },
+      {
+        "text": "骨粗鬆症",
+        "match": "q5_item24"
+      }
+    ],
+    "right": [
+      {
+        "text": "woven bone",
+        "match": "q5_item20"
+      },
+      {
+        "text": "bone morphogenetic protein(BMP)",
+        "match": "q5_item21"
+      },
+      {
+        "text": "osteoid",
+        "match": "q5_item22"
+      },
+      {
+        "text": "Rickets",
+        "match": "q5_item23"
+      },
+      {
+        "text": "osteoporosis",
+        "match": "q5_item24"
+      }
+    ]
+  },
+  
+];
+    
+    // (The remainder of the JavaScript code is unchanged and uses the quizzes variable.)
+    let currentQuizIndex = 0;
+    let quizResults = new Array(quizzes.length).fill(null);
+    let totalScore = 0;
+    let connections = {};
+    let tempLine = null;
+    let currentLeftCircle = null;
+    const SNAP_THRESHOLD = 30;
+    
+    const quizPageTitle = document.getElementById('quizPageTitle');
+    const progressBar = document.getElementById('progressBar');
+    const leftColumn = document.getElementById('leftColumn');
+    const rightColumn = document.getElementById('rightColumn');
+    const svgContainer = document.getElementById('svgContainer');
+    const sendButton = document.getElementById('sendButton');
+    const nextButton = document.getElementById('nextButton');
+    const restartButton = document.getElementById('restartButton');
+    const quizList = document.getElementById('quizList');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const lectureDisplay = document.getElementById('lectureDisplay');
+    
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+    
+    function getCenterCoords(el) {
+      const containerRect = document.getElementById('quizContainer').getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      return {
+        x: elRect.left - containerRect.left + elRect.width / 2,
+        y: elRect.top - containerRect.top + elRect.height / 2
+      };
+    }
+    
+    function createSVGLine(x1, y1, x2, y2, color = '#000') {
+      const svgns = "http://www.w3.org/2000/svg";
+      const line = document.createElementNS(svgns, 'line');
+      line.setAttribute('x1', x1);
+      line.setAttribute('y1', y1);
+      line.setAttribute('x2', x2);
+      line.setAttribute('y2', y2);
+      line.setAttribute('stroke', color);
+      line.setAttribute('stroke-width', 3);
+      line.setAttribute('stroke-linecap', 'round');
+      return line;
+    }
+    
+    function checkSnap(x, y) {
+      const rightCircles = document.querySelectorAll('.right-circle');
+      for (const rightCircle of rightCircles) {
+        const center = getCenterCoords(rightCircle);
+        const dx = x - center.x;
+        const dy = y - center.y;
+        if (Math.sqrt(dx * dx + dy * dy) <= SNAP_THRESHOLD) {
+          return { snapped: true, x: center.x, y: center.y, targetCircle: rightCircle };
+        }
+      }
+      return null;
+    }
+    
+    function updateProgressBar() {
+      const completedCount = quizResults.filter(result => result !== null).length;
+      const percentage = (completedCount / quizzes.length) * 100;
+      progressBar.style.width = percentage + '%';
+    }
+    
+    function updateSidebar() {
+      quizList.innerHTML = '';
+      quizzes.forEach((quiz, index) => {
+        const li = document.createElement('li');
+        li.textContent = "Quiz " + (index + 1) + (quiz.title ? " - " + quiz.title : "");
+        if (index === currentQuizIndex) li.classList.add('active');
+        if (quizResults[index] !== null) {
+          li.classList.add('completed');
+          li.textContent += " (" + quizResults[index] + "/5)";
+        }
+        li.addEventListener('click', function() {
+          loadQuiz(index);
+        });
+        quizList.appendChild(li);
+      });
+    }
+    
+    function pointerDownHandler(e) {
+      e.preventDefault();
+      if (quizResults[currentQuizIndex] !== null) return;
+      currentLeftCircle = e.currentTarget;
+      const leftContainer = currentLeftCircle.parentElement;
+      if (connections[leftContainer.id]) {
+        svgContainer.removeChild(connections[leftContainer.id].line);
+        delete connections[leftContainer.id];
+      }
+      const start = getCenterCoords(currentLeftCircle);
+      tempLine = createSVGLine(start.x, start.y, start.x, start.y, '#888');
+      tempLine.setAttribute('stroke-dasharray', '5,5');
+      svgContainer.appendChild(tempLine);
+      document.addEventListener('pointermove', pointerMoveHandler);
+      document.addEventListener('pointerup', pointerUpHandler);
+    }
+    
+    function pointerMoveHandler(e) {
+      const containerRect = document.getElementById('quizContainer').getBoundingClientRect();
+      let x = e.clientX - containerRect.left;
+      let y = e.clientY - containerRect.top;
+      const snap = checkSnap(x, y);
+      if (snap) { x = snap.x; y = snap.y; }
+      tempLine.setAttribute('x2', x);
+      tempLine.setAttribute('y2', y);
+    }
+    
+    function pointerUpHandler(e) {
+      document.removeEventListener('pointermove', pointerMoveHandler);
+      document.removeEventListener('pointerup', pointerUpHandler);
+      const containerRect = document.getElementById('quizContainer').getBoundingClientRect();
+      let x = e.clientX - containerRect.left;
+      let y = e.clientY - containerRect.top;
+      const snap = checkSnap(x, y);
+      const leftContainer = currentLeftCircle.parentElement;
+      if (snap) {
+        x = snap.x; y = snap.y;
+        const rightCircle = snap.targetCircle;
+        for (const key in connections) {
+          if (connections[key].rightCircle === rightCircle) {
+            svgContainer.removeChild(connections[key].line);
+            delete connections[key];
+            break;
+          }
+        }
+        svgContainer.removeChild(tempLine);
+        tempLine = null;
+        const start = getCenterCoords(currentLeftCircle);
+        const permanentLine = createSVGLine(start.x, start.y, x, y);
+        svgContainer.appendChild(permanentLine);
+        connections[leftContainer.id] = { rightCircle, line: permanentLine };
+      } else {
+        if (tempLine) { svgContainer.removeChild(tempLine); tempLine = null; }
+      }
+      currentLeftCircle = null;
+    }
+    
+    function loadQuiz(index) {
+      currentQuizIndex = index;
+      updateSidebar();
+      updateProgressBar();
+      scoreDisplay.innerText = "";
+      lectureDisplay.style.display = "none";
+      lectureDisplay.innerText = "";
+      leftColumn.innerHTML = "";
+      rightColumn.innerHTML = "";
+      svgContainer.innerHTML = "";
+      connections = {};
+    
+      const quiz = quizzes[index];
+      let titleText = "Quiz " + (index + 1);
+      if (quiz.title) { titleText += " - " + quiz.title; }
+      if (quizResults[index] !== null) { titleText += " (Score: " + quizResults[index] + "/5)"; }
+      quizPageTitle.textContent = titleText;
+      sendButton.disabled = (quizResults[index] !== null);
+    
+      let leftItems = quiz.left.slice();
+      let rightItems = quiz.right.slice();
+      shuffleArray(leftItems);
+      shuffleArray(rightItems);
+    
+      leftItems.forEach((item, i) => {
+        const container = document.createElement('div');
+        container.className = 'left-item-container';
+        container.id = 'left' + i;
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'left-item';
+        itemDiv.textContent = item.text;
+        itemDiv.setAttribute('data-match', item.match);
+        container.appendChild(itemDiv);
+        const circleDiv = document.createElement('div');
+        circleDiv.className = 'left-circle';
+        container.appendChild(circleDiv);
+        leftColumn.appendChild(container);
+        circleDiv.addEventListener('pointerdown', pointerDownHandler);
+      });
+    
+      rightItems.forEach((item, i) => {
+        const container = document.createElement('div');
+        container.className = 'right-item-container';
+        container.id = 'right' + i;
+        const circleDiv = document.createElement('div');
+        circleDiv.className = 'right-circle';
+        container.appendChild(circleDiv);
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'right-item';
+        itemDiv.textContent = item.text;
+        itemDiv.setAttribute('data-match', item.match);
+        container.appendChild(itemDiv);
+        rightColumn.appendChild(container);
+      });
+    }
+    
+    sendButton.addEventListener('click', () => {
+      const leftContainers = document.querySelectorAll('.left-item-container');
+      if (Object.keys(connections).length !== leftContainers.length) {
+        scoreDisplay.innerText = "Please complete all connections before sending!";
+        return;
+      }
+      let correctCount = 0;
+      leftContainers.forEach(container => {
+        const leftMatch = container.querySelector('.left-item').getAttribute('data-match');
+        const { rightCircle, line } = connections[container.id];
+        const rightMatch = rightCircle.parentElement.querySelector('.right-item').getAttribute('data-match');
+        if (leftMatch === rightMatch) {
+          line.setAttribute('stroke', 'blue');
+          correctCount++;
+        } else {
+          line.setAttribute('stroke', 'red');
+        }
+      });
+      quizResults[currentQuizIndex] = correctCount;
+      totalScore = quizResults.reduce((acc, val) => acc + (val || 0), 0);
+      scoreDisplay.innerText = "You got " + correctCount + " out of " + leftContainers.length + " correct in this quiz.";
+      if (currentQuizIndex < quizzes.length - 1) {
+        nextButton.disabled = false;
+      } else {
+        nextButton.disabled = true;
+        const totalPairs = quizzes.length * leftContainers.length;
+        scoreDisplay.innerText += "\nAll quizzes completed! Your total score is " + totalScore + " out of " + totalPairs;
+      }
+      sendButton.disabled = true;
+      updateSidebar();
+      updateProgressBar();
+      lectureDisplay.innerText = "Lecture Note:\nRemember, proper cell function depends on the coordinated action of all organelles. Review the processes discussed and take note of key concepts for further study.";
+      lectureDisplay.style.display = "block";
+    });
+    
+    nextButton.addEventListener('click', () => {
+      if (currentQuizIndex < quizzes.length - 1) {
+        loadQuiz(currentQuizIndex + 1);
+        nextButton.disabled = true;
+      }
+    });
+    
+    restartButton.addEventListener('click', () => {
+      if (confirm("Are you sure you want to restart? All progress will be lost.")) {
+        quizResults = new Array(quizzes.length).fill(null);
+        totalScore = 0;
+        currentQuizIndex = 0;
+        updateSidebar();
+        updateProgressBar();
+        loadQuiz(0);
+        scoreDisplay.innerText = "";
+        lectureDisplay.style.display = "none";
+        lectureDisplay.innerText = "";
+      }
+    });
+    
+    updateSidebar();
+    loadQuiz(0);
+  </script>
+</body>
+</html>
